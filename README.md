@@ -1,38 +1,56 @@
-Obliv-C Secure Computation Compiler (`oblivcc`)
+Obliv-C with TLS support
 ===============================================
 
-Obliv-C is a simple GCC wrapper that makes it easy to embed secure computation protocols inside regular C programs. The idea is simple: if you are performing a multi-party distributed computation with sensitive data, just write it in our Obliv-C langauge and compile/link it with your project. The result will be a secure cryptographic protocol that performs this operation without revealing any of the inputs or intermediate values of the computation to any of the parties. Only the outputs are finally shared.
+This repository contains a modified version of Obliv-C with TLS support.
+
+The original Obliv-C can be found here: https://github.com/samee/obliv-c
+
+In particular, two parties in the secure computation share a pre-shared secret key and use the TLS protocol for network communication.
 
 # Installation
-Unfortunately, the instructions for Fedora and Mac OS might be a little out of date, since we discovered OPAM is now a dependency (#49). Please ping us if you figured out how to install Obliv-C on those systems.
+Please follow the original Obliv-C installation instructions. 
 
-1. Installation of dependencies.
-  * For Ubuntu: `sudo apt-get install ocaml libgcrypt20-dev ocaml-findlib opam m4`.
-  * For Fedora 27: `sudo dnf install glibc-devel.i686 ocaml ocaml-ocamldoc ocaml-findlib ocaml-findlib-devel ocaml-ocamlbuild libgcrypt libgcrypt-devel perl-ExtUtils-MakeMaker perl-Data-Dumper`.
-  * For Mac OS (with Macports): `sudo port install gcc5 ocaml ocaml-findlib opam libgcrypt +devel`.
+In addition, we require `tcmalloc`, which is part of Google's [gperftools](https://github.com/gperftools/gperftools). 
 
-2. If you are using OPAM as our package manager, and this is the first time you are using it, set it up:
-   ```
-   opam init
-   opam switch 4.06.0
-   eval `opam config env`
-   opam install camlp4 ocamlfind ocamlbuild batteries
-   ```
-   Version 4.06.0 just happened to be the most recent version when we tested. You can check what you have by running `opam switch list`, and try a more recent one.
-   Note that this step seems to be unnecessary under Fedora.
+For Ubuntu, it can be installed using `apt-get`.
 
-3. Git-clone this repository, and compile:
-  * For Linux: `./configure && make`.
-  * For Mac OS (with Macports): `CC=/opt/local/bin/gcc-mp-5 CPP=/opt/local/bin/cpp-mp-5 CFLAGS=/opt/local/include LIBRARY_PATH=/opt/local/lib ./configure && make`.
+```
+sudo apt-get install libgoogle-perftools-dev
+```
 
-4. Start using it! The compiler is a GCC wrapper script found in `bin/oblivcc`. Example codes are in `test/oblivc`. A language tutorial is found [here](http://goo.gl/TXzxD0).
+The rest of the steps are similar with the original Obliv-C's.
 
-Most of this code was forked from the project CIL (C Intermediate Language). You can diff with the master branch to see which part was added on later.
+# Example
 
-# Benchmarks
+A toy, insecure example to set up the TLS connections is as follow:
 
-This repository includes several example programs using Obliv-C in the `test/oblivc` directory.  See [obliv-c/test/oblivc/README.txt](https://github.com/samee/obliv-c/blob/obliv-c/test/oblivc/README.txt) for details.
+```
+void ocTestUtilTcpOrDieBuffered(ProtocolDesc* pd, bool isServer, const char* remote_host, const char* port, bool isProfiled, size_t first_party_send_buffer_size, size_t second_party_send_buffer_size) {
+	const char key[] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
+	if(isServer) {
+		int res;
+		res = protocolAcceptTLS2P(pd, port, key, isProfiled, first_party_send_buffer_size);
+		if(res!=0) {
+			fprintf(stderr,"TLS accept failed\n");
+			exit(1);
+		}
+	} else {
+		int res;
+		res = protocolConnectTLS2P(pd, remote_host, port, key, isProfiled, second_party_send_buffer_size);
+		if (res!=0) {
+			fprintf(stderr,"TLS connect failed\n");
+			exit(1);
+		}
+	}
+}	
+```
 
-# Help
+Note that `key` is the pre-shared secret key. One should better not hard-code this key in the code.
 
-Please let us know if you are using Obliv-C.  If you have any questions, either open an issue here on GitHub or just send me an email at sza4uq@virginia.edu.
+Buffering is crucial for the performance since every TLS packet needs to carry additional payload. Thus, the buffer sizes need to be provided. Some of our experiments use `32768` and yield a good result.
+
+# Licenses
+
+Note that this library is based on CIL and Obliv-C. They both use BSD licenses.
+
+See [LICENSE-cil](LICENSE-cil) and [LICENSE-oblivcc](LICENSE-oblivcc) for more information.

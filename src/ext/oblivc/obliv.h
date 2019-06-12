@@ -20,7 +20,12 @@ int protocolConnectTcp2P(ProtocolDesc* pd,const char* server,const char* port);
 int protocolAcceptTcp2P(ProtocolDesc* pd,const char* port);
 int protocolConnectTcp2PProfiled(ProtocolDesc* pd,const char* server,const char* port);
 int protocolAcceptTcp2PProfiled(ProtocolDesc* pd,const char* port);
+int protocolConnectTLS2P(ProtocolDesc* pd, const char* server, const char* port, const unsigned char *key, bool isProfiled, size_t buffer_size);
+int protocolAcceptTLS2P(ProtocolDesc* pd, const char* port, const unsigned char *key, bool isProfiled, size_t buffer_size);
 void cleanupProtocol(ProtocolDesc*);
+
+size_t tls2PBytesSent(ProtocolDesc* pd);
+size_t tls2PFlushCount(ProtocolDesc* pd);
 
 void setCurrentParty(ProtocolDesc* pd, int party);
 void execDebugProtocol(ProtocolDesc* pd, protocol_run start, void* arg);

@@ -5,7 +5,6 @@
 //#include<stdio.h>
 //FILE* transGetFile(ProtocolTransport* t); // Debugging API
 
-
 // Because I am evil and I do not like
 // Java-style redundant "say the type twice" practice
 #define CAST(p) ((void*)p)

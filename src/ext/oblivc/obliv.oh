@@ -81,6 +81,7 @@ void ocBroadcastShortArray(short dest[], short src[], size_t n, int party);
 void  ocBroadcastLongArray(long dest[],   long src[], size_t n, int party);
 void ocBroadcastLLongArray(long long dest[], long long src[], size_t n,
 							int party);
+int tlsdebug(int set);
 
 uint64_t yaoGateCount(void);
 #endif

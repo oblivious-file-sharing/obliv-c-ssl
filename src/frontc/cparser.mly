@@ -265,7 +265,7 @@ let oblivState (s:statement): statement =
 %token<Cabs.cabsloc> CHAR INT BOOL DOUBLE FLOAT VOID INT64 INT32
 %token<Cabs.cabsloc> ENUM STRUCT TYPEDEF UNION
 %token<Cabs.cabsloc> SIGNED UNSIGNED LONG SHORT
-%token<Cabs.cabsloc> OBLIV
+%token<Cabs.cabsloc> OBLIV NORETURN
 %token<Cabs.cabsloc> VOLATILE EXTERN STATIC CONST RESTRICT AUTO REGISTER FROZEN
 %token<Cabs.cabsloc> THREAD
 
@@ -1343,6 +1343,7 @@ attribute_nocv:
 |   THREAD                              { ("__thread",[]), $1 }
 |   QUALIFIER                     {("__attribute__",[VARIABLE(fst $1)]),snd $1}
 |   OBLIV                               { ("obliv",[]), $1 }
+|   NORETURN                            { ("noreturn", []), $1 }
 ;
 
 attribute_nocv_list:

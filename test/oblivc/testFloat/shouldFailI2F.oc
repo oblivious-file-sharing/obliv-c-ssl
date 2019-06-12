@@ -1,3 +1,0 @@
-obliv int fun(obliv float x) {
-  return x;
-}

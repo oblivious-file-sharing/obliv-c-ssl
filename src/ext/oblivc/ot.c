@@ -775,7 +775,7 @@ recverExtensionBox(RecverExtensionBox* r,char box[],
   free(keyxor);
 }
 
-#define OT_THREAD_THRESHOLD 500
+#define OT_THREAD_THRESHOLD 5000
 #define OT_THREAD_COUNT 8
 
 #define CHECK_HASH_BYTES 10
@@ -1060,7 +1060,7 @@ typedef struct
   void* sender;
 } SendMsgArgs;
 
-#define MSGBUFFER_SIZE 10000
+#define MSGBUFFER_SIZE 100000
 static void sendBufFlush(SendMsgArgs* a)
 {
   transSend(a->trans,a->destParty,a->buf,a->bufused);
@@ -1075,7 +1075,7 @@ static void sendBufSend(SendMsgArgs* a,const char* data)
 }
 static void sendBufInit(SendMsgArgs* a)
 {
-  a->buf=malloc(a->len*MSGBUFFER_SIZE);
+  a->buf=malloc(a->len*MSGBUFFER_SIZE*2);
   a->bufused=0;
 }
 static void sendBufRelease(SendMsgArgs* a) { sendBufFlush(a); free(a->buf); }
@@ -1142,7 +1142,7 @@ static void recvBufRecv(RecvMsgArgs* a,char* data)
 }
 static void recvBufInit(RecvMsgArgs* a)
 {
-  a->buf=malloc(a->len*MSGBUFFER_SIZE);
+  a->buf=malloc(a->len*MSGBUFFER_SIZE*2);
   a->bufread=a->len*MSGBUFFER_SIZE;
   a->payloadLeft=(a->isCorr?a->n:2*a->n);
 }
