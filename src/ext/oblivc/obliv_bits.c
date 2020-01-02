@@ -1240,8 +1240,6 @@ static void debugOblivBit(const OblivBit* o)
 }
 */
 
-const char yaoFixedKey[] = "\x61\x7e\x8d\xa2\xa0\x51\x1e\x96"
-                           "\x5e\x41\xc2\x9b\x15\x3f\xc7\x7a";
 const int yaoFixedKeyAlgo = GCRY_CIPHER_AES128;
 #define FIXED_KEY_BLOCKLEN 16
 
@@ -1686,6 +1684,20 @@ void yaoReleaseOt(ProtocolDesc* pd,int me)
   }
 }
 
+static void setupYaoFixedKeyCipher(ProtocolDesc* pd) {
+	YaoProtocolDesc* ypd = pd->extra;
+	size_t klen = gcry_cipher_get_algo_keylen(yaoFixedKeyAlgo);
+	assert(klen == sizeof(ypd->yaoFixedKey));
+	
+	BCipherRandomGen* gen = newBCipherRandomGen();
+	assert(ocRandomBytes(pd,gen,ypd->yaoFixedKey,klen,3-pd->thisParty));
+	releaseBCipherRandomGen(gen);
+	
+	gcry_cipher_open(&ypd->fixedKeyCipher,yaoFixedKeyAlgo,
+	                 GCRY_CIPHER_MODE_ECB,0);
+	gcry_cipher_setkey(ypd->fixedKeyCipher,ypd->yaoFixedKey,klen);
+}
+
 void splitYaoProtocolExtra(ProtocolDesc* pdout, ProtocolDesc * pdin) {
   YaoProtocolDesc* ypdin = pdin->extra;
   YaoProtocolDesc* ypdout = malloc(sizeof(YaoProtocolDesc));
@@ -1695,8 +1707,8 @@ void splitYaoProtocolExtra(ProtocolDesc* pdout, ProtocolDesc * pdin) {
   ypdout->extra = NULL;
   ypdout->icount = ypdout->ocount = 0;
   ypdout->ownOT = true; // For now we don't do anything special for OT on forked protocols
-  gcry_cipher_open(&ypdout->fixedKeyCipher,yaoFixedKeyAlgo,GCRY_CIPHER_MODE_ECB,0);
-  gcry_cipher_setkey(ypdout->fixedKeyCipher,yaoFixedKey,sizeof(yaoFixedKey)-1);
+  setupYaoFixedKeyCipher(pdout);
+  
   if (pdout->thisParty == 1) {
     memcpy(ypdout->R,ypdin->R,YAO_KEY_BYTES);
     gcry_randomize(ypdout->I,YAO_KEY_BYTES,GCRY_STRONG_RANDOM);
@@ -1741,8 +1753,7 @@ void setupYaoProtocol(ProtocolDesc* pd,bool halfgates)
   else ypd->recver.recver=NULL;
 
   dhRandomInit();
-  gcry_cipher_open(&ypd->fixedKeyCipher,yaoFixedKeyAlgo,GCRY_CIPHER_MODE_ECB,0);
-  gcry_cipher_setkey(ypd->fixedKeyCipher,yaoFixedKey,sizeof(yaoFixedKey)-1);
+  setupYaoFixedKeyCipher(pd);
 
   pd->splitextra = splitYaoProtocolExtra;
   pd->cleanextra = cleanupYaoProtocol;
