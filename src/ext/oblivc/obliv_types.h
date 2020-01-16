@@ -1,10 +1,11 @@
 #ifndef OBLIV_TYPES_H
 #define OBLIV_TYPES_H
 
-#include<stddef.h>
-#include<stdbool.h>
-#include<stdint.h>  // uint64_t
-#include<gcrypt.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>  // uint64_t
+#include <gcrypt.h>
+#include <mitccrh.h>
 
 #define OC_ERROR_NONE 0
 #define OC_ERROR_OT_EXTENSION -1
@@ -118,6 +119,9 @@ typedef struct YaoProtocolDesc {
       const OblivBit*,const OblivBit*);
   union { OTsender sender; OTrecver recver; };
   gcry_cipher_hd_t fixedKeyCipher;
+  bool halfgates;
+  proxy_MITCCRH proxy_mitccrh;
+  block start_point;
   void* extra;
 } YaoProtocolDesc;
 

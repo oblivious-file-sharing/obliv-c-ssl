@@ -37,7 +37,7 @@ stamp-h: config.h.in config.status
 
 CC=@CC@
 CPP=@CPP@
-CFLAGS=@CFLAGS@
+CFLAGS=@CFLAGS@ -march=native -maes -mrdseed
 @DEFAULT_COMPILER@=1
 
 # We have to use _build because of OCaml's bug #0004502
@@ -113,7 +113,7 @@ else
 endif
 DEPENDDIR = $(OBJDIR)/depends
 OCSRCDIR = src/ext/oblivc
-OCPARTS += obliv_bits ot dualex atomic_queue commitReveal obliv_network_utils bcrandom privacy-free psi nnob copy obliv_float_add obliv_float_sub obliv_float_div obliv_float_eq obliv_float_le obliv_float_lt obliv_float_mult obliv_float_neg
+OCPARTS += obliv_bits ot dualex atomic_queue commitReveal obliv_network_utils bcrandom privacy-free psi nnob copy obliv_float_add obliv_float_sub obliv_float_div obliv_float_eq obliv_float_le obliv_float_lt obliv_float_mult obliv_float_neg mitccrh
 OOCPARTS += copy
 
 oblivruntime: $(OBJDIR)/libobliv.a

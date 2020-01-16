@@ -19,6 +19,7 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <arpa/inet.h>
+#include <mitccrh.h>
 
 // Q: What's with all these casts to and from void* ?
 // A: Code generation becomes easier without the need for extraneous casts.
@@ -1266,33 +1267,6 @@ void yaoKeyDouble(yao_key_t d)
 #endif
 }
 
-// Remove old SHA routines?
-//#define DISABLE_FIXED_KEY
-#ifdef DISABLE_FIXED_KEY
-// d = H(a,k), used by half gate scheme
-void yaoSetHalfMask(YaoProtocolDesc* ypd,
-                    yao_key_t d,const yao_key_t a,uint64_t k)
-{
-  char buf[YAO_KEY_BYTES+8], dest[20]; // dest length = DIGEST length
-  memcpy(buf,a,YAO_KEY_BYTES);
-  memcpy(buf+YAO_KEY_BYTES,&k,sizeof(k));
-  gcry_md_hash_buffer(GCRY_MD_SHA1,dest,buf,sizeof(buf));
-  memcpy(d,dest,YAO_KEY_BYTES);
-}
-// XXX do I need i when it is already encoded in lsb(a)||lsb(b)
-void yaoSetHashMask(YaoProtocolDesc* ypd,
-                    yao_key_t d,const yao_key_t a,const yao_key_t b,
-                    uint64_t k,int i)
-{
-  char buf[2*YAO_KEY_BYTES+8], dest[20];  // dest length == DIGEST length
-  k=((k<<2)|i);
-  memcpy(buf,a,YAO_KEY_BYTES);
-  memcpy(buf+YAO_KEY_BYTES,b,YAO_KEY_BYTES);
-  memcpy(buf+2*YAO_KEY_BYTES,&k,8);
-  gcry_md_hash_buffer(GCRY_MD_SHA1,dest,buf,sizeof(buf));
-  memcpy(d,dest,YAO_KEY_BYTES);
-}
-#else
 // d = H(a,k), used by half gate scheme
 void yaoSetHalfMask(YaoProtocolDesc* ypd,
                     yao_key_t d,const yao_key_t a,uint64_t k)
@@ -1300,6 +1274,7 @@ void yaoSetHalfMask(YaoProtocolDesc* ypd,
   char  buf[FIXED_KEY_BLOCKLEN];
   char obuf[FIXED_KEY_BLOCKLEN]; // buf length >= YAO_KEY_BYTES
   int i;
+  
   assert(YAO_KEY_BYTES<=FIXED_KEY_BLOCKLEN);
   for(i=YAO_KEY_BYTES;i<FIXED_KEY_BLOCKLEN;++i) buf[i]=0;
   yaoKeyCopy(buf,a); yaoKeyDouble(buf);
@@ -1307,6 +1282,8 @@ void yaoSetHalfMask(YaoProtocolDesc* ypd,
   gcry_cipher_encrypt(ypd->fixedKeyCipher,obuf,sizeof(obuf),buf,sizeof(buf));
   yaoKeyCopy(d,obuf);
   yaoKeyXor(d,buf);
+  
+  
 }
 // Same as yaoSetHalfMask(ypd,d1,a1,k); yaoSetHalfMask(ypd,d2,a2,k)
 // Uses a single call to gcry_cipher_encrypt, which is faster.
@@ -1344,6 +1321,13 @@ void yaoSetHashMask(YaoProtocolDesc* ypd,
   char  buf[FIXED_KEY_BLOCKLEN];
   char obuf[FIXED_KEY_BLOCKLEN];
   int i;
+	
+  /*
+  * Fail this routine.
+  */
+  fprintf(stderr, "Invocation to non-free-gate version of Yao's protocol is not supported.\n");
+  exit(1);
+  
   k=4*k+ii;
   assert(YAO_KEY_BYTES<=FIXED_KEY_BLOCKLEN);
   for(i=YAO_KEY_BYTES;i<FIXED_KEY_BLOCKLEN;++i) buf[i]=0;
@@ -1354,7 +1338,6 @@ void yaoSetHashMask(YaoProtocolDesc* ypd,
   yaoKeyCopy(d,obuf);
   yaoKeyXor(d,buf);
 }
-#endif
 
 // Why am I using SHA1 as a PRG? Not necessarily safe. TODO change to AES
 void yaoKeyNewPair(YaoProtocolDesc* pd,yao_key_t w0,yao_key_t w1)
@@ -1513,6 +1496,12 @@ void yaoGenerateGate(ProtocolDesc* pd, OblivBit* r, char ttable,
   int im=0,i;
   yao_key_t wa,wb,wc,wt;
   const char* R = ypd->R;
+	
+  /*
+  * Fail this routine.
+  */
+  fprintf(stderr, "Invocation to non-free-gate version of Yao's protocol is not supported.\n");
+  exit(1);
 
   // adjust truth table according to invert fields (faster with im^=...) TODO
   if(a->yao.inverted) ttable = (((ttable&3)<<2)|((ttable>>2)&3));
@@ -1549,6 +1538,13 @@ void yaoEvaluateGate(ProtocolDesc* pd, OblivBit* r, char ttable,
   int i=0,j;
   YaoProtocolDesc* ypd = pd->extra;
   yao_key_t w,t;
+	
+  /*
+  * Fail this routine.
+  */
+  fprintf(stderr, "Invocation to non-free-gate version of Yao's protocol is not supported.\n");
+  exit(1);
+  
   yaoKeyZero(t);
   if(yaoKeyLsb(a->yao.w)) i^=2;
   if(yaoKeyLsb(b->yao.w)) i^=1;
@@ -1601,9 +1597,21 @@ void yaoGenerateHalfGatePair(ProtocolDesc* pd, OblivBit* r,
   yaoKeyCopy(wa1,wa0); yaoKeyXor(wa1,ypd->R);
   yaoKeyCopy(wb1,wb0); yaoKeyXor(wb1,ypd->R);
 
+  block LA0, A1, LB0, B1;
+  block H[4];
+  block HLA0, HA1, HLB0, HB1;
+  memcpy((char*)&LA0, wa0, 16); memcpy((char*)&A1, wa1, 16); memcpy((char*)&LB0, wb0, 16); memcpy((char*)&B1, wb1, 16);
+  MITCCRH_renew_ks_if_needed(&(ypd->proxy_mitccrh), ypd->gcount);
+  MITCCRH_k2_h4(&(ypd->proxy_mitccrh), LA0, A1, LB0, B1, H);
+  HLA0 = H[0];
+  HA1 = H[1];
+  HLB0 = H[2];
+  HB1 = H[3];
+
   //yaoSetHalfMask(ypd,row,wa0,ypd->gcount);
   //yaoSetHalfMask(ypd,t  ,wa1,ypd->gcount);
-  yaoSetHalfMask2(ypd,row,wa0,t,wa1,ypd->gcount);
+  //yaoSetHalfMask2(ypd,row,wa0,t,wa1,ypd->gcount);
+  memcpy(row, (char*)&HLA0, 16); memcpy(t, (char*)&HA1, 16);
   yaoKeyCopy(wg,(pa?t:row));
   yaoKeyXor (row,t);
   yaoKeyCondXor(row,(pb!=bc),row,ypd->R);
@@ -1613,7 +1621,8 @@ void yaoGenerateHalfGatePair(ProtocolDesc* pd, OblivBit* r,
 
   //yaoSetHalfMask(ypd,row,wb0,ypd->gcount);
   //yaoSetHalfMask(ypd,t  ,wb1,ypd->gcount);
-  yaoSetHalfMask2(ypd,row,wb0,t,wb1,ypd->gcount);
+  //yaoSetHalfMask2(ypd,row,wb0,t,wb1,ypd->gcount);
+  memcpy(row, (char*)&HLB0, 16); memcpy(t, (char*)&HB1, 16);
   yaoKeyCopy(we,(pb?t:row));
   yaoKeyXor (row,t);
   yaoKeyXor (row,(ac?wa1:wa0));
@@ -1641,12 +1650,23 @@ void yaoEvaluateHalfGatePair(ProtocolDesc* pd, OblivBit* r,
 {
   YaoProtocolDesc* ypd = pd->extra;
   yao_key_t row,t,wg,we;
+	
+  block A, B;
+  block H[2];
+  block HA, HB;
+  memcpy((char*)&A, a->yao.w, 16); memcpy((char*)&B, b->yao.w, 16);
+  MITCCRH_renew_ks_if_needed(&(ypd->proxy_mitccrh), ypd->gcount);
+  MITCCRH_k2_h2(&(ypd->proxy_mitccrh), A, B, H);
+  HA = H[0];
+  HB = H[1];
 
-  yaoSetHalfMask(ypd,t,a->yao.w,ypd->gcount++);
+  //yaoSetHalfMask(ypd,t,a->yao.w,ypd->gcount++);
+  memcpy(t, (char*)&HA, 16);
   orecv(pd,1,row,YAO_KEY_BYTES);
   yaoKeyCondXor(wg,yaoKeyLsb(a->yao.w),t,row);
 
-  yaoSetHalfMask(ypd,t,b->yao.w,ypd->gcount++);
+  //yaoSetHalfMask(ypd,t,b->yao.w,ypd->gcount++);
+  memcpy(t, (char*)&HB, 16);
   orecv(pd,1,row,YAO_KEY_BYTES);
   yaoKeyXor(row,a->yao.w);
   yaoKeyCondXor(we,yaoKeyLsb(b->yao.w),t,row);
@@ -1654,6 +1674,8 @@ void yaoEvaluateHalfGatePair(ProtocolDesc* pd, OblivBit* r,
   // r may alias a and b, so modify at the end
   yaoKeyCopy(r->yao.w,wg);
   yaoKeyXor (r->yao.w,we);
+	
+  ypd->gcount +=2;
 
   r->unknown = true;
 }
@@ -1757,6 +1779,11 @@ void setupYaoProtocol(ProtocolDesc* pd,bool halfgates)
 
   pd->splitextra = splitYaoProtocolExtra;
   pd->cleanextra = cleanupYaoProtocol;
+  
+  ypd->halfgates = halfgates;
+  if(halfgates == 1){
+	  MITCCRH_init(&(ypd->proxy_mitccrh));
+  }
 }
 
 // point_and_permute should always be true.
@@ -1783,7 +1810,20 @@ void mainYaoProtocol(ProtocolDesc* pd, bool point_and_permute,
     { ypd->ownOT=true;
       ypd->recver = honestOTExtRecverAbstract(honestOTExtRecverNew(pd,1));
     }
-
+    
+    
+  if(me == 1){
+  	block mitccrh_start_point;
+  	gcry_randomize((char*)&mitccrh_start_point, 16, GCRY_STRONG_RANDOM);
+  	
+  	osend(pd, 2, &mitccrh_start_point, 16);
+  	MITCCRH_setS(&(ypd->proxy_mitccrh), mitccrh_start_point);
+  }else{
+  	block mitccrh_start_point;
+	orecv(pd, 1, &mitccrh_start_point, 16);
+	MITCCRH_setS(&(ypd->proxy_mitccrh), mitccrh_start_point);
+  }
+  
   currentProto = pd;
   start(arg);
 }
@@ -1827,7 +1867,20 @@ void yaoGenerateGenHalf(ProtocolDesc* pd,OblivBit* r,
   const char *wa0 = a->yao.w;
 
   yaoKeyCopy(wa1,wa0); yaoKeyXor(wa1,ypd->R);
-  yaoSetHalfMask2(ypd,row,wa0,t,wa1,ypd->gcount);
+	
+  block LA0, A1;
+  block H[2];
+  block HLA0, HA1;
+  memcpy((char*)&LA0, wa0, 16); memcpy((char*)&A1, wa1, 16);
+  MITCCRH_renew_ks_if_needed(&(ypd->proxy_mitccrh), ypd->gcount);
+  MITCCRH_k2_h2(&(ypd->proxy_mitccrh), LA0, A1, H);
+  HLA0 = H[0];
+  HA1 = H[1];
+  
+  //yaoSetHalfMask2(ypd,row,wa0,t,wa1,ypd->gcount);
+  memcpy(row, (char*)&HLA0, 16);
+  memcpy(t, (char*)&HA1, 16);
+  
   yaoKeyCopy(wg,(pa?t:row));
   yaoKeyXor (row,t);
   yaoKeyCondXor(row,(b!=bc),row,ypd->R);
@@ -1841,11 +1894,22 @@ void yaoEvaluateGenHalf(ProtocolDesc* pd,OblivBit* r,const OblivBit* a)
 {
   YaoProtocolDesc* ypd = pd->extra;
   yao_key_t row,t;
-
-  yaoSetHalfMask(ypd,t,a->yao.w,ypd->gcount++);
+  
+  block A;
+  block H[1];
+  block HA;
+  memcpy((char*)&A, a->yao.w, 16);
+  MITCCRH_renew_ks_if_needed(&(ypd->proxy_mitccrh), ypd->gcount);
+  MITCCRH_k1_h1(&(ypd->proxy_mitccrh), A, H);
+  HA = H[0];
+  
+  //yaoSetHalfMask(ypd,t,a->yao.w,ypd->gcount++);
+  memcpy(t, (char*)&HA, 16);
+  
   orecv(pd,1,row,YAO_KEY_BYTES);
   yaoKeyCondXor(r->yao.w,yaoKeyLsb(a->yao.w),t,row);
   r->unknown = true;
+  ypd->gcount++;
 }
 typedef struct
 { yao_key_t *w,*R;
@@ -1966,7 +2030,7 @@ void yaoEHalfSwapGate(ProtocolDesc* pd,
   OblivBit *x = calloc(n,sizeof(OblivBit));
   
   if(x == NULL){
-    fprintf(stderr, "An allocation failed. Want to calloc %d, each for %d\n", n, sizeof(OblivBit));
+    fprintf(stderr, "An allocation failed. Want to calloc %d, each for %ld\n", n, sizeof(OblivBit));
   }
 
   int i;
