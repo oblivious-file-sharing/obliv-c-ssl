@@ -1601,7 +1601,7 @@ void yaoGenerateHalfGatePair(ProtocolDesc* pd, OblivBit* r,
   block H[4];
   block HLA0, HA1, HLB0, HB1;
   memcpy((char*)&LA0, wa0, 16); memcpy((char*)&A1, wa1, 16); memcpy((char*)&LB0, wb0, 16); memcpy((char*)&B1, wb1, 16);
-  MITCCRH_renew_ks_if_needed_2_keys(proxy_MITCCRH *proxy_mitccrh, uint64_t gid)(&(ypd->proxy_mitccrh), ypd->gcount);
+  MITCCRH_renew_ks_if_needed_2_keys(&(ypd->proxy_mitccrh), ypd->gcount);
   MITCCRH_k2_h4(&(ypd->proxy_mitccrh), LA0, A1, LB0, B1, H);
   HLA0 = H[0];
   HA1 = H[1];
