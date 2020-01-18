@@ -5,7 +5,7 @@ COMPILE_ONLY=0
 CCARGS=""
 CILLYARGS=""
 OCSRC=()
-GCRYPT="-lgcrypt -lssl -lcrypto -ltcmalloc"
+GCRYPT="-lgcrypt -lssl -lcrypto"
 if [ "$OBLIVC_BITS" = "no" ]; then
   OBLIV_BITS=
 else
