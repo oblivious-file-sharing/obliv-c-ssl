@@ -15,7 +15,7 @@ typedef __m128i block;
 void MITCCRH_init(proxy_MITCCRH *proxy_mitccrh);
 void MITCCRH_setS(proxy_MITCCRH *proxy_mitccrh, __m128i sin);
 void MITCCRH_renew_ks_if_needed(proxy_MITCCRH *proxy_mitccrh, __uint64_t gid);
-void MITCCRH_renew_ks_if_needed_2_keys(proxy_MITCCRH *proxy_mitccrh, uint64_t gid);
+void MITCCRH_renew_ks_if_needed_2_keys(proxy_MITCCRH *proxy_mitccrh, __uint64_t gid);
 void MITCCRH_renew_ks(proxy_MITCCRH *proxy_mitccrh, __uint64_t gid);
 void MITCCRH_k1_h1(proxy_MITCCRH *proxy_mitccrh, __m128i A, __m128i *H);
 void MITCCRH_k1_h2(proxy_MITCCRH *proxy_mitccrh, block A, block B, block *H);
