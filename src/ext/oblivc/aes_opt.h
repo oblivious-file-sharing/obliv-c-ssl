@@ -204,6 +204,14 @@ typedef struct KEY_SCHEDULE
 
 #define ENC_round_11_last(i) {block1=_mm_aesenclast_si128(block1, (*(__m128i const*)(keys[0].KEY+i*16))); \
 	}
+
+#define ENC_round_12(i) {block1=_mm_aesenc_si128(block1, (*(__m128i const*)(keys[0].KEY+i*16))); \
+	block2=_mm_aesenc_si128(block2, (*(__m128i const*)(keys[0].KEY+i*16))); \
+	}
+
+#define ENC_round_12_last(i) {block1=_mm_aesenclast_si128(block1, (*(__m128i const*)(keys[0].KEY+i*16))); \
+	block2=_mm_aesenclast_si128(block2, (*(__m128i const*)(keys[0].KEY+i*16))); \
+	}
 	
 #define ENC_round_22(i) {block1=_mm_aesenc_si128(block1, (*(__m128i const*)(keys[0].KEY+i*16))); \
 	block2=_mm_aesenc_si128(block2, (*(__m128i const*)(keys[1].KEY+i*16))); \
@@ -479,6 +487,34 @@ typedef struct KEY_SCHEDULE
 		ENC_round_11_last(10)
 		
 		_mm_storeu_si128((__m128i *)(CT+0*16), block1);
+	}
+
+	static inline void AES_ecb_ccr_ks1_enc2(block *plaintext, block *ciphertext, ROUND_KEYS *KEYS) {
+		unsigned char* PT = (unsigned char*)plaintext;
+		unsigned char* CT = (unsigned char*)ciphertext;
+		ROUND_KEYS *keys = KEYS;
+		__m128i keyA;
+		__m128i block1 = _mm_loadu_si128((__m128i const*)(0*16+PT));
+		__m128i block2 = _mm_loadu_si128((__m128i const*)(1*16+PT));
+		READ_KEYS_1(0)
+		
+		block1 = _mm_xor_si128(keyA, block1);
+		block2 = _mm_xor_si128(keyA, block2);
+		
+		ENC_round_12(1)
+		ENC_round_12(2)
+		ENC_round_12(3)
+		ENC_round_12(4)
+		ENC_round_12(5)
+		ENC_round_12(6)
+		ENC_round_12(7)
+		ENC_round_12(8)
+		ENC_round_12(9)
+		ENC_round_12_last(10)
+		
+		_mm_storeu_si128((__m128i *)(CT+0*16), block1);
+		_mm_storeu_si128((__m128i *)(CT+1*16), block2);
+		
 	}
 
 	static inline void AES_ecb_ccr_ks2_enc2(block *plaintext, block *ciphertext, ROUND_KEYS *KEYS) {

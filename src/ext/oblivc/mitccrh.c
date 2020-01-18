@@ -31,6 +31,14 @@ void MITCCRH_renew_ks_if_needed(proxy_MITCCRH *proxy_mitccrh, uint64_t gid) {
 	}
 }
 
+void MITCCRH_renew_ks_if_needed_2_keys(proxy_MITCCRH *proxy_mitccrh, uint64_t gid) {
+	GET_REAL_MITCCRH
+	
+	if(mitccrh->key_used == KS_BATCH_N || mitccrh->key_used == KS_BATCH_N - 1) {
+		MITCCRH_renew_ks(proxy_mitccrh, gid);
+	}
+}
+
 void MITCCRH_renew_ks(proxy_MITCCRH *proxy_mitccrh, uint64_t gid) {
 	GET_REAL_MITCCRH
 	switch(KS_BATCH_N) {
@@ -54,10 +62,25 @@ void MITCCRH_k1_h1(proxy_MITCCRH *proxy_mitccrh, block A, block *H) {
 	masks[0] = keys[0];
 	
 	AES_ecb_ccr_ks1_enc1(keys, keys, &mitccrh->key_schedule[mitccrh->key_used]);
-	mitccrh->key_used += 2;
-	/* jump one key */
+	mitccrh->key_used ++;
 	
 	H[0] = xorBlocks(keys[0], masks[0]);
+}
+
+void MITCCRH_k1_h2(proxy_MITCCRH *proxy_mitccrh, block A, block B, block *H) {
+	GET_REAL_MITCCRH
+	
+	block keys[2], masks[2];
+	keys[0] = sigma(A);
+	keys[1] = sigma(B);
+	masks[0] = keys[0];
+	masks[1] = keys[1];
+	
+	AES_ecb_ccr_ks1_enc2(keys, keys, &mitccrh->key_schedule[mitccrh->key_used]);
+	mitccrh->key_used ++;
+	
+	H[0] = xorBlocks(keys[0], masks[0]);
+	H[1] = xorBlocks(keys[1], masks[1]);
 }
 
 void MITCCRH_k2_h2(proxy_MITCCRH *proxy_mitccrh, block A, block B, block *H) {
