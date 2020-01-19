@@ -1729,7 +1729,12 @@ void splitYaoProtocolExtra(ProtocolDesc* pdout, ProtocolDesc * pdin) {
   ypdout->extra = NULL;
   ypdout->icount = ypdout->ocount = 0;
   ypdout->ownOT = true; // For now we don't do anything special for OT on forked protocols
+  
+  ypdout->halfgates = ypdin->halfgates;
   setupYaoFixedKeyCipher(pdout);
+  if(ypdout->halfgates == 1){
+  	MITCCRH_init(&(ypdout->proxy_mitccrh));
+  }
   
   if (pdout->thisParty == 1) {
     memcpy(ypdout->R,ypdin->R,YAO_KEY_BYTES);
@@ -1742,6 +1747,19 @@ void splitYaoProtocolExtra(ProtocolDesc* pdout, ProtocolDesc * pdin) {
     ypdout->recver = honestOTExtRecverAbstract(honestOTExtRecverNew(pdout,1));
   }
   ypdout->gcount = ypdout->gcount_offset;
+	
+  if(pdout->thisParty == 1){
+  	block mitccrh_start_point;
+  	gcry_randomize((char*)&mitccrh_start_point, 16, GCRY_STRONG_RANDOM);
+		
+  	osend(pdout, 2, &mitccrh_start_point, 16);
+  	MITCCRH_setS(&(ypdout->proxy_mitccrh), mitccrh_start_point);
+  }else{
+  	block mitccrh_start_point;
+  	orecv(pdout, 1, &mitccrh_start_point, 16);
+  	MITCCRH_setS(&(ypdout->proxy_mitccrh), mitccrh_start_point);
+  }
+  
   oflush(pdin); oflush(pdout);
 }
 
